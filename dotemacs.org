@@ -4,64 +4,134 @@
 
 * Bootstrap
 
-** Use better defaults
+** Use Better Defaults
 
 Here are what I consider better defaults as per my own experience.
 
 #+BEGIN_SRC emacs-lisp
 (setq-default
- ad-redefinition-action 'accept                   ; Silence warnings for redefinition
- auto-save-list-file-prefix nil                   ; Prevent tracking for auto-saves
- cursor-in-non-selected-windows nil               ; Hide the cursor in inactive windows
- cursor-type 'bar                                 ; Prefer a bar-shaped cursor
- custom-unlispify-menu-entries nil                ; Prefer kebab-case for titles
- custom-unlispify-tag-names nil                   ; Prefer kebab-case for symbols
- delete-by-moving-to-trash t                      ; Delete files to trash
- fill-column 80                                   ; Set width for automatic line breaks
- gc-cons-threshold (* 8 1024 1024)                ; We're not using Game Boys anymore
- help-window-select t                             ; Focus new help windows when opened
- indent-tabs-mode nil                             ; Stop using tabs to indent
- inhibit-startup-screen t                         ; Disable start-up screen
- initial-scratch-message ""                       ; Empty the initial *scratch* buffer
- mouse-yank-at-point t                            ; Yank at point rather than pointer
- recenter-positions '(5 top bottom)               ; Set re-centering positions
- scroll-margin 2                                  ; Add a margin when scrolling vertically
- select-enable-clipboard t                        ; Merge system's and Emacs' clipboard
- sentence-end-double-space nil                    ; Use a single space after dots
- show-help-function nil                           ; Disable help text everywhere
- tab-width 4                                      ; Set width for tabs
- uniquify-buffer-name-style 'forward              ; Uniquify buffer names
- window-combination-resize t                      ; Resize windows proportionally
- window-divider-default-right-width 2             ; Thin window vertical dividers
- x-stretch-cursor t)                              ; Stretch cursor to the glyph width
-(cd "~/")                                         ; Move to the user directory
-(delete-selection-mode 1)                         ; Replace region when inserting text
-(fset 'yes-or-no-p 'y-or-n-p)                     ; Replace yes/no prompts with y/n
-(global-subword-mode 1)                           ; Iterate through CamelCase words
-(menu-bar-mode 0)                                 ; Disable the menu bar
-(mouse-avoidance-mode 'exile)                     ; Avoid collision of mouse with point
-(put 'downcase-region 'disabled nil)              ; Enable downcase-region
-(put 'upcase-region 'disabled nil)                ; Enable upcase-region
-(set-default-coding-systems 'utf-8)               ; Default to utf-8 encoding
+ ad-redefinition-action 'accept         ; Silence warnings for redefinition
+ auto-save-list-file-prefix nil         ; Prevent tracking for auto-saves
+ cursor-in-non-selected-windows nil     ; Hide the cursor in inactive windows
+ cursor-type 'bar                       ; Prefer a bar-shaped cursor
+ custom-unlispify-menu-entries nil      ; Prefer kebab-case for titles
+ custom-unlispify-tag-names nil         ; Prefer kebab-case for symbols
+ delete-by-moving-to-trash t            ; Delete files to trash
+ fill-column 80                         ; Set width for automatic line breaks
+ gc-cons-threshold (* 8 1024 1024)      ; We're not using Game Boys anymore
+ help-window-select t                   ; Focus new help windows when opened
+ indent-tabs-mode nil                   ; Stop using tabs to indent
+ inhibit-startup-screen t               ; Disable start-up screen
+ initial-scratch-message ""             ; Empty the initial *scratch* buffer
+ mouse-yank-at-point t                  ; Yank at point rather than pointer
+ recenter-positions '(5 top bottom)     ; Set re-centering positions
+ scroll-conservatively 101              ; Avoid recentering when scrolling far
+ scroll-margin 2                        ; Add a margin when scrolling vertically
+ select-enable-clipboard t              ; Merge system's and Emacs' clipboard
+ sentence-end-double-space nil          ; Use a single space after dots
+ show-help-function nil                 ; Disable help text everywhere
+ tab-width 4                            ; Set width for tabs
+ uniquify-buffer-name-style 'forward    ; Uniquify buffer names
+ window-combination-resize t            ; Resize windows proportionally
+ window-divider-default-right-width 2   ; Thin window vertical dividers
+ x-stretch-cursor t)                    ; Stretch cursor to the glyph width
+(delete-selection-mode 1)               ; Replace region when inserting text
+(fset 'yes-or-no-p 'y-or-n-p)           ; Replace yes/no prompts with y/n
+(global-subword-mode 1)                 ; Iterate through CamelCase words
+(menu-bar-mode 0)                       ; Disable the menu bar
+(mouse-avoidance-mode 'exile)           ; Avoid collision of mouse with point
+(put 'downcase-region 'disabled nil)    ; Enable downcase-region
+(put 'upcase-region 'disabled nil)      ; Enable upcase-region
+(set-default-coding-systems 'utf-8)     ; Default to utf-8 encoding
+#+END_SRC
+
+Use =.cache/= to contain local data. This is to avoid littering in the Emacs
+directory with an ever-growing number of packages used on a daily basis.
+
+#+BEGIN_SRC emacs-lisp
+(defconst me/cache-directory
+  (expand-file-name ".cache/")
+  "Directory where all cache files should be saved")
+
+(defun me/cache-concat (name)
+  "Return the absolute path of NAME under `me/cache-directory'."
+  (let ((directory (file-name-as-directory me/cache-directory)))
+    (make-directory directory t)
+    (convert-standard-filename (concat directory name))))
+#+END_SRC
+
+#+BEGIN_SRC emacs-lisp
+(with-eval-after-load 'request
+  (setq-default request-storage-directory (me/cache-concat "request/")))
+(with-eval-after-load 'tramp
+  (setq-default tramp-persistency-file-name (me/cache-concat "tramp")))
+(with-eval-after-load 'url
+  (setq-default url-configuration-directory (me/cache-concat "url/")))
+#+END_SRC
+
+** EXWM
+
+| =exwm= | https://github.com/ch11ng/exwm |
+
+
+| TODO | Make =xdg-open= switch workspace/eyebrowse automatically |
+| TODO | Notifications                                            |
+| TODO | Remove =exwm-config-default= dependency                  |
+| TODO | Clean up system tray setup                               |
+| TODO | Check out https://github.com/agzam/exwm-edit             |
+| TODO | Load display setup from =.xinitrc= or =.secret.el=       |
+| TODO | Export EXWM configuration to =desktop.org=               |
+| TODO | Reduce flickering on startup                             |
+
+#+BEGIN_SRC emacs-lisp
+(use-package exwm
+  :demand t
+  :hook
+  (exwm-randr-screen-change . me/exwm-xrandr)
+  :custom
+  (exwm-randr-workspace-monitor-plist '(0 "DVI-D-0" 1 "HDMI-0"))
+  (exwm-workspace-index-map (lambda (index) (number-to-string (1+ index))))
+  :config
+  (require 'exwm-config)
+  (exwm-config-default)
+  (setq exwm-workspace-number 2)
+  (ido-mode 0)
+  (require 'exwm-randr)
+  (exwm-randr-enable)
+  (require 'exwm-systemtray)
+  (exwm-systemtray-enable))
+#+END_SRC
+
+#+BEGIN_SRC emacs-lisp
+(defun me/exwm-xrandr ()
+  "Set resolution for EXWM displays."
+  (start-process-shell-command
+   "xrandr" nil "xrandr \
+--output HDMI-0 --mode 1920x1080 --pos 0x0 \
+--output DVI-D-0 --mode 1920x1080 --pos 1920x0"))
 #+END_SRC
 
 Some UI elements are rather invasive. No-mouse master race.
 
+| TODO | Move these to =early-init.el= |
+
 #+BEGIN_SRC emacs-lisp
 (when window-system
-  (blink-cursor-mode 0)                           ; Disable the cursor blinking
-  (fringe-mode 2)                                 ; Initialize thinner vertical fringes
-  (scroll-bar-mode 0)                             ; Disable the scroll bar
-  (tool-bar-mode 0)                               ; Disable the tool bar
-  (tooltip-mode 0)                                ; Disable the tooltips
-  (window-divider-mode 1)                         ; Disable the tooltips
+  (blink-cursor-mode 0)                 ; Disable the cursor blinking
+  (fringe-mode 2)                       ; Initialize thinner vertical fringes
+  (scroll-bar-mode 0)                   ; Disable the scroll bar
+  (tool-bar-mode 0)                     ; Disable the tool bar
+  (tooltip-mode 0)                      ; Disable the tooltips
+  (window-divider-mode 1)               ; Disable the tooltips
 
   (define-fringe-bitmap 'left-curly-arrow [192] nil nil '(center t)))
 #+END_SRC
 
 Enable fullscreen.
 
-#+BEGIN_SRC emacs-lisp
+| TODO | Prevent fullscreen to apply to EXWM sessions |
+
+#+BEGIN_SRC emacs-lisp :tangle no
 (if (eq window-system 'ns)
     (set-frame-parameter nil 'fullscreen 'maximized)
   (set-frame-parameter nil 'fullscreen 'fullboth))
@@ -85,41 +155,37 @@ Garbage-collect on focus-out, Emacs /should/ feel snappier overall.
       (garbage-collect))))
 #+END_SRC
 
-** Load =.custom.el=
+I chose to lay out my configurations and customizations in this very Org
+document for better visibility and maintainability through time and various
+upgrades. Albeit useful, the =customize-*= routines go against that strategy by
+writing directly at the end of the =user-init-file= or into a dedicated file
+when set accordingly.
 
-One is able to use the customization interface that is bundled within Emacs. It
-is meant to help people who are not familiar with Emacs Lisp in the
-configuration of Emacs itself. By default, changes in the customization will be
-automatically detected and appended at the end of the configuration file,
-=init.el=.
-
-Since that in my case, the actual configuration file is a new one, crafted by
-=org-mode=, adding code at the end of =init.el= might mess things up. The
-following tells Emacs to add extra code in another file that would be then
-loaded, if existing.
+To fight the littering I've decided to completely disable this feature and
+redirect the writing to =/dev/null=.
 
 #+BEGIN_SRC emacs-lisp
-(setq-default custom-file (expand-file-name ".custom.el" user-emacs-directory))
-(load custom-file t)
+(setq-default custom-file null-device)
 #+END_SRC
 
-** Load =.secret.el=
+** Load Secrets
 
-I load =~/.emacs.d/.secret.el= to keep sensible things out of version control.
-For instance, you could set your identity by customizing both =user-full-name=
-and =user-mail-address=. This is also where you want your API tokens to live.
+Load =.secret.el= to keep sensible things out of version control. For instance,
+you could set your identity by customizing both =user-full-name= and
+=user-mail-address=. This is also where you want your machine-specific settings to
+be.
 
 #+BEGIN_SRC emacs-lisp
-(defvar me/erc-nick           nil                 "The ERC nick to use.")
-(defvar me/erc-password       nil                 "The ERC password to use.")
-(defvar me/erc-port           nil                 "The ERC port to use.")
-(defvar me/erc-server         nil                 "The ERC server to use.")
-(defvar me/font-family        "Monaco"            "The font to use.")
-(defvar me/font-size-default  120                 "The font size to use for default text.")
-(defvar me/font-size-large    1.2                 "The font size to use for larger text.")
-(defvar me/font-size-small    .8                  "The font size to use for smaller text.")
+(defvar me/erc-nick           nil       "The ERC nick to use.")
+(defvar me/erc-password       nil       "The ERC password to use.")
+(defvar me/erc-port           nil       "The ERC port to use.")
+(defvar me/erc-server         nil       "The ERC server to use.")
+(defvar me/font-family        "Monaco"  "The font to use.")
+(defvar me/font-size-default  120       "The font size to use for default text.")
+(defvar me/font-size-large    1.2       "The font size to use for larger text.")
+(defvar me/font-size-small    .8        "The font size to use for smaller text.")
 
-(let ((secret.el (expand-file-name ".secret.el" user-emacs-directory)))
+(let ((secret.el (expand-file-name ".secret.el")))
   (load secret.el t))
 #+END_SRC
 
@@ -142,6 +208,7 @@ Load the theme and fix some faces to match my personal preferences.
   (doom-themes-set-faces nil
     '(default :font me/font-family :height me/font-size-default)
     '(doom-modeline-bar :background 'unspecified)
+    '(doom-visual-bell :background (doom-darken red 0.6))
     '(flycheck-error :underline `(:color ,error :style line))
     '(flycheck-info :underline `(:color ,highlight :style line))
     '(flycheck-warning :underline `(:color ,warning :style line))
@@ -150,6 +217,7 @@ Load the theme and fix some faces to match my personal preferences.
     '(info-title-4 :bold nil :foreground red)
     '(isearch :inherit 'highlight)
     '(italic :italic nil)
+    '(ivy-minibuffer-match-highlight :background (doom-darken blue .6) :extend t)
     '(lazy-highlight :foreground blue)
     '(line-number :background 'unspecified :foreground base5)
     '(line-number-current-line :inherit 'line-number)
@@ -169,7 +237,6 @@ Load the theme and fix some faces to match my personal preferences.
       :background 'unspecified
       :foreground violet
       :inherit 'org-block-begin-line)
-    ;; '(magit-diff-hunk-heading-highlight :background 'unspecified :foreground 'unspecified)
     '(magit-diff-hunk-region :inherit 'region)
     '(magit-diff-removed :background 'unspecified)
     '(magit-diff-removed-highlight
@@ -183,6 +250,7 @@ Load the theme and fix some faces to match my personal preferences.
     '(org-block-begin-line :background (doom-lighten bg .03))
     '(org-quote :background 'unspecified :inherit '(font-lock-doc-face org-block))
     '(outline-1 :foreground red)
+    '(secondary-selection :background (doom-darken dark-cyan .6))
     '(tooltip :background base1)
     '(variable-pitch :family 'unspecified)
     '(vertical-border :background 'unspecified :inverse-video t)
@@ -274,7 +342,29 @@ HTML mode is defined in =sgml-mode.el=.
 
 ** Lisp
 
-| =ielm= | Built-in |
+| =elisp-mode= | Built-in |
+| =ielm=       | Built-in |
+
+#+BEGIN_SRC emacs-lisp
+(use-package elisp-mode
+  :ensure nil
+  :bind
+  (:map emacs-lisp-mode-map
+   ("C-c C-c" . me/eval-region-dwim)
+   :map lisp-interaction-mode-map
+   ("C-c C-c" . me/eval-region-dwim)))
+#+END_SRC
+
+#+BEGIN_SRC emacs-lisp
+(defun me/eval-region-dwim ()
+  "When region is active, evaluate it and kill the mark. Else, evaluate the
+whole buffer."
+  (interactive)
+  (if (not (region-active-p))
+      (eval-buffer)
+    (eval-region (region-beginning) (region-end))
+    (setq-local deactivate-mark t)))
+#+END_SRC
 
 #+BEGIN_SRC emacs-lisp
 (use-package ielm
@@ -304,8 +394,11 @@ HTML mode is defined in =sgml-mode.el=.
 
 | =org= | Built-in |
 
-This very file is organized with =org-mode=. I am definitely not a power user of
-Org, but I'm getting there. :-)
+
+| TODO | Check out =org-capture= |
+
+This very file is organized with =org-mode=. Like Markdown, but with
+superpowers.
 
 #+BEGIN_QUOTE
 Org mode is for keeping notes, maintaining TODO lists, planning projects, and
@@ -320,9 +413,7 @@ authoring documents with a fast and effective plain-text system.
   :bind
   (:map org-mode-map
    ("<C-return>" . nil)
-   ("<C-tab>" . me/org-cycle-parent)
-   ("C-j" . me/org-show-next-heading-tidily)
-   ("C-k" . me/org-show-previous-heading-tidily))
+   ("<C-tab>" . me/org-cycle-parent))
   :hook
   (org-mode . me/hydra-set-super)
   :custom
@@ -339,8 +430,14 @@ authoring documents with a fast and effective plain-text system.
   (org-startup-truncated nil)
   (org-support-shift-select 'always)
   :config
+  (require 'ob-shell)
+  (add-to-list 'org-babel-load-languages '(shell . t))
   (modify-syntax-entry ?' "'" org-mode-syntax-table)
-  (advice-add 'org-src--construct-edit-buffer-name :override #'me/org-src-buffer-name))
+  (advice-add 'org-src--construct-edit-buffer-name :override #'me/org-src-buffer-name)
+  (with-eval-after-load 'evil
+    (evil-define-key* 'motion org-mode-map
+      (kbd "C-j") #'me/org-show-next-heading-tidily
+      (kbd "C-k") #'me/org-show-previous-heading-tidily)))
 #+END_SRC
 
 #+BEGIN_SRC emacs-lisp
@@ -422,7 +519,7 @@ completion candidates.
   (company-dabbrev-ignore-case nil)
   (company-dabbrev-other-buffers nil)
   (company-global-modes '(not help-mode message-mode))
-  (company-idle-delay .0)
+  (company-idle-delay 0)
   (company-minimum-prefix-length 1)
   (company-require-match nil)
   (company-selection-wrap-around t)
@@ -470,9 +567,10 @@ configurations.
   (after-init . desktop-read)
   (after-init . desktop-save-mode)
   :custom
-  (desktop-base-file-name ".desktop")
-  (desktop-base-lock-name ".desktop.lock")
-  (desktop-restore-eager 4))
+  (desktop-base-file-name (me/cache-concat ".desktop"))
+  (desktop-base-lock-name (me/cache-concat ".desktop.lock"))
+  (desktop-restore-eager 4)
+  (desktop-restore-forces-onscreen nil))
 #+END_SRC
 
 Workspaces within Emacs.
@@ -497,7 +595,12 @@ Python.
   (eyebrowse-new-workspace t))
 #+END_SRC
 
-Olivetti lets you center your buffer for aesthetics and focus.
+Olivetti lets you center your buffer for aesthetics and focus. I have it set up
+to turn on automatically when visiting a single buffer, and disable itself
+otherwise.
+
+| TODO | Allow horizontally lone buffers too |
+| TODO | Hide Magit margin content           |
 
 #+BEGIN_SRC emacs-lisp
 (use-package olivetti
@@ -507,22 +610,38 @@ Olivetti lets you center your buffer for aesthetics and focus.
   (olivetti-body-width 100))
 #+END_SRC
 
-| TODO | Prefer =cl-lib= routines |
+| TODO | Prefer =cl-lib= routines              |
+| TODO | Enable for =*scratch*= buffer         |
+| TODO | Provide a Hydra head to toggle it off |
 
 #+BEGIN_SRC emacs-lisp
-(defvar me/olivetti-whitelist-modes '(erc-mode lisp-interaction-mode special-mode))
+(defvar me/olivetti-whitelist-buffers
+  '("*sratch*"))
+
+(defvar me/olivetti-whitelist-modes
+  '(Custom-mode
+    dired-mode
+    erc-mode
+    lisp-interaction-mode
+    special-mode
+    vterm-mode))
+
 (defun me/olivetti-mode-maybe (&optional frame)
   "Turn on `olivetti-mode' for lone buffers.
 
 Doesn't count volatile windows unless the major-mode of their associated buffer
 is found in `me/olivetti-whitelist-modes' or is derived from one of them.
+Windows from buffers whose names are found in `me/olivetti-whitelist-buffers'
+are also considered.
 
-If more than one active window is found in the current frame, turn on
-`olivetti-mode'. Otherwise, disable it in all visible buffers."
-  (let* ((whitelist-modes me/olivetti-whitelist-modes)
+If FRAME shows exactly one window, turn on `olivetti-mode' for that window.
+Otherwise, disable it everywhere."
+  (let* ((whitelist-buffers me/olivetti-whitelist-buffers)
+         (whitelist-modes me/olivetti-whitelist-modes)
          (predicate (lambda (window)
                       (with-selected-window window
                         (or (buffer-file-name)
+                            (member (buffer-name) whitelist-buffers)
                             (apply 'derived-mode-p whitelist-modes)))))
          (windows (seq-filter predicate (window-list frame))))
     (if (= 1 (length windows))
@@ -535,7 +654,7 @@ If more than one active window is found in the current frame, turn on
 
 Window management.
 
-| TODO | Shackle Magit windows |
+| TODO | Check out Doom popups |
 
 #+BEGIN_QUOTE
 =shackle= gives you the means to put an end to popped up buffers not behaving
@@ -648,6 +767,9 @@ Ediff is a visual interface to Unix =diff=.
 Configure Dired buffers. Amongst many other things, Emacs is also a file
 explorer.
 
+| TODO | Check out =dired-collapse= |
+| TODO | Check out =dired-imenu=    |
+
 #+BEGIN_SRC emacs-lisp
 (use-package dired
   :ensure nil
@@ -704,6 +826,7 @@ Evil emulates and manages the infamous Vim states and motions ported to Emacs.
   :config
   (add-to-list 'evil-insert-state-modes 'with-editor-mode)
   (add-to-list 'evil-emacs-state-modes 'dired-mode)
+  (add-to-list 'evil-emacs-state-modes 'vterm-mode)
   (add-to-list 'evil-motion-state-modes 'helpful-mode)
   (evil-define-text-object me/evil-whole-buffer (_ &optional _ _ type)
     "Text object to select the whole buffer."
@@ -768,7 +891,6 @@ them under the same bind, that is =<C-return>=. It's basically an expand DWIM.
   (prog-mode . yas-minor-mode)
   (text-mode . yas-minor-mode)
   :custom
-  (yas-snippet-dirs `(,(expand-file-name "snippets/" user-emacs-directory)))
   (yas-verbosity 2)
   :config
   (yas-reload-all))
@@ -824,16 +946,18 @@ seamless, it's like a minor mode that disables itself auto-magically.
 #+BEGIN_SRC emacs-lisp
 (use-package hydra
   :bind
+  ("C-c a" . hydra-applications/body)
   ("C-c d" . hydra-dates/body)
   ("C-c e" . hydra-eyebrowse/body)
   ("C-c f" . hydra-flycheck/body)
   ("C-c g" . hydra-git/body)
   ("C-c i" . hydra-ivy/body)
-  ("C-c o" . me/hydra-super)
+  ("C-c o" . me/hydra-super-maybe)
   ("C-c p" . hydra-projectile/body)
   ("C-c s" . hydra-system/body)
   ("C-c u" . hydra-ui/body)
   ("C-c w" . hydra-windows/body)
+  ("C-c x" . hydra-x/body)
   :custom
   (hydra-default-hint nil))
 #+END_SRC
@@ -859,11 +983,28 @@ seamless, it's like a minor mode that disables itself auto-magically.
     (when (functionp body)
       (setq me/hydra-super-body body))))
 
-(defun me/hydra-super ()
+(defun me/hydra-super-maybe ()
   (interactive)
   (if me/hydra-super-body
       (funcall me/hydra-super-body)
     (user-error "me/hydra-super: me/hydra-super-body is not set")))
+#+END_SRC
+
+** Hydra / Applications
+
+Group commands for high-level applications.
+
+#+BEGIN_SRC emacs-lisp
+(defhydra hydra-applications (:color teal)
+  (concat "\n " (me/hydra-heading "Applications" "Launch" "Shell")
+          "
+ _q_ quit              _i_ erc               _t_ vterm             ^^
+ ^^                    ^^                    _T_ eshell            ^^
+")
+  ("q" nil)
+  ("i" me/erc)
+  ("t" vterm)
+  ("T" (eshell t)))
 #+END_SRC
 
 ** Hydra / Dates
@@ -871,7 +1012,7 @@ seamless, it's like a minor mode that disables itself auto-magically.
 Group date-related commands.
 
 #+BEGIN_SRC emacs-lisp
-(defhydra hydra-dates (:color blue)
+(defhydra hydra-dates (:color teal)
   (concat "\n " (me/hydra-heading "Dates" "Insert" "Insert with Time")
           "
  _q_ quit              _d_ short             _D_ short             ^^
@@ -892,7 +1033,7 @@ Group date-related commands.
 Group Eyebrowse commands.
 
 #+BEGIN_SRC emacs-lisp
-(defhydra hydra-eyebrowse (:color blue)
+(defhydra hydra-eyebrowse (:color teal)
   (concat "\n " (me/hydra-heading "Eyebrowse" "Do" "Switch")
           "
  _q_ quit              _c_ create            _0_-_9_ %s(eyebrowse-mode-line-indicator)
@@ -926,7 +1067,7 @@ Group Eyebrowse commands.
 Group Flycheck commands.
 
 #+BEGIN_SRC emacs-lisp
-(defhydra hydra-flycheck (:color blue)
+(defhydra hydra-flycheck (:color teal)
   (concat "\n " (me/hydra-heading "Flycheck" "Do" "Errors" "Checker")
           "
  _q_ quit              _v_ verify setup      _<_ previous          _?_ describe
@@ -952,7 +1093,7 @@ Group Flycheck commands.
 Group Magit commands.
 
 #+BEGIN_SRC emacs-lisp
-(defhydra hydra-git (:color blue)
+(defhydra hydra-git (:color teal)
   (concat "\n " (me/hydra-heading "Git" "Do" "Gutter")
           "
  _q_ quit              _b_ blame             _p_ previous          ^^
@@ -977,22 +1118,22 @@ Group Magit commands.
   (:color pink :pre (if (not smerge-mode) (smerge-mode 1)) :post (smerge-auto-leave))
   (concat "\n " (me/hydra-heading "Git / SMerge" "Move" "Keep" "Diff")
           "
- _q_ quit              _g_ first             _RET_ current         _=_ upper / lower
- ^^                    _G_ last              _a_ all               _<_ upper / base
- ^^                    _C-j_ next            _b_ base              _>_ base / lower
- ^^                    _C-k_ previous        _l_ lower             _E_ ediff
+ _q_ quit              _g_ first             _RET_ current         _<_ upper / base
+ ^^                    _G_ last              _a_ all               _=_ upper / lower
+ ^^                    _j_ next              _b_ base              _>_ base / lower
+ ^^                    _k_ previous          _l_ lower             _E_ ediff
  ^^                    ^^                    _u_ upper             _H_ highlight
 ")
   ("q" nil :color blue)
-  ("C-j" smerge-next)
-  ("C-k" smerge-prev)
-  ("<" smerge-diff-base-upper)
-  (">" smerge-diff-base-lower)
-  ("=" smerge-diff-upper-lower)
+  ("j" smerge-next)
+  ("k" smerge-prev)
+  ("<" smerge-diff-base-upper :color blue)
+  ("=" smerge-diff-upper-lower :color blue)
+  (">" smerge-diff-base-lower :color blue)
   ("RET" smerge-keep-current)
   ("a" smerge-keep-all)
   ("b" smerge-keep-base)
-  ("E" smerge-ediff)
+  ("E" smerge-ediff :color blue)
   ("g" (progn (goto-char (point-min)) (smerge-next)))
   ("G" (progn (goto-char (point-max)) (smerge-prev)))
   ("H" smerge-refine)
@@ -1005,7 +1146,7 @@ Group Magit commands.
 Group Ivy commands.
 
 #+BEGIN_SRC emacs-lisp
-(defhydra hydra-ivy (:color blue)
+(defhydra hydra-ivy (:color teal)
   (concat "\n " (me/hydra-heading "Ivy" "Do" "Browse")
           "
  _q_ quit              _r_ resume            _f_ faces             ^^
@@ -1028,7 +1169,7 @@ Group Ivy commands.
 Group LSP commands. This hydra is bound in =lsp-mode-map=.
 
 #+BEGIN_SRC emacs-lisp
-(defhydra hydra-lsp (:color blue)
+(defhydra hydra-lsp (:color teal)
   (concat "\n " (me/hydra-heading "LSP" "Do" "Find" "Server")
           "
  _q_ quit              _i_ imenu             _f_ definition        _d_ describe
@@ -1075,6 +1216,8 @@ Group Markdown commands.
 
 Group Org commands.
 
+| TODO | Add heads for =org-table-*= |
+
 #+BEGIN_SRC emacs-lisp
 (defhydra hydra-org (:color pink)
   (concat "\n " (me/hydra-heading "Org" "Links" "Outline")
@@ -1102,14 +1245,14 @@ Group Org commands.
 Group Projectile commands.
 
 #+BEGIN_SRC emacs-lisp
-(defhydra hydra-projectile (:color blue)
+(defhydra hydra-projectile (:color teal)
   (concat "\n " (me/hydra-heading "Projectile" "Do" "Find" "Search")
           "
  _q_ quit              _K_ kill buffers      _b_ buffer            _r_ replace
  ^^                    _i_ reset cache       _d_ directory         _R_ regexp replace
- ^^                    _n_ new               _D_ root              _s_ rg
- ^^                    _S_ save buffers      _f_ file              ^^
- ^^                    ^^                    _p_ project           ^^
+ ^^                    _n_ new project       _D_ root              _s_ rg
+ ^^                    _N_ prune projects    _f_ file              _S_ grep
+ ^^                    _v_ save buffers      _p_ project           ^^
 ")
   ("q" nil)
   ("b" counsel-projectile-switch-to-buffer)
@@ -1119,11 +1262,13 @@ Group Projectile commands.
   ("i" projectile-invalidate-cache :color red)
   ("K" projectile-kill-buffers)
   ("n" projectile-add-known-project)
+  ("N" projectile-cleanup-known-projects)
   ("p" counsel-projectile-switch-project)
   ("r" projectile-replace)
   ("R" projectile-replace-regexp)
   ("s" counsel-projectile-rg)
-  ("S" projectile-save-project-buffers))
+  ("S" counsel-projectile-grep)
+  ("v" projectile-save-project-buffers))
 #+END_SRC
 
 ** Hydra / RJSX
@@ -1131,7 +1276,7 @@ Group Projectile commands.
 Group React JavaScript commands.
 
 #+BEGIN_SRC emacs-lisp
-(defhydra hydra-rjsx (:color blue)
+(defhydra hydra-rjsx (:color teal)
   (concat "\n " (me/hydra-heading "RJSX" "JSDoc")
           "
  _q_ quit              _f_ function          ^^                    ^^
@@ -1147,11 +1292,11 @@ Group React JavaScript commands.
 Group system-related commands.
 
 #+BEGIN_SRC emacs-lisp
-(defhydra hydra-system (:color blue)
+(defhydra hydra-system (:color teal)
   (concat "\n " (me/hydra-heading "System" "Packages" "Toggle" "Other")
           "
  _q_ quit              _i_ install           _g_ debug: %-3s`debug-on-error        _d_ clear byte-compiled
- _s_ shell...          _p_ list              ^^                    _D_ clear desktop
+ ^^                    _p_ list              ^^                    _D_ clear desktop
  ^^                    _r_ refresh           ^^                    _l_ list processes
  ^^                    ^^                    ^^                    _Q_ clear and kill Emacs
 ")
@@ -1166,46 +1311,33 @@ Group system-related commands.
          (me/byte-delete)
          (desktop-remove)
          (save-buffers-kill-terminal)))
-  ("r" package-refresh-contents :color red)
-  ("s" hydra-system/shell/body))
-#+END_SRC
-
-#+BEGIN_SRC emacs-lisp
-(defhydra hydra-system/shell (:color blue)
-  (concat "\n " (me/hydra-heading "System / Shell" "Start")
-          "
- _q_ quit              _a_ ansi              ^^                    ^^
- ^^                    _e_ eshell            ^^                    ^^
- ^^                    _t_ term              ^^                    ^^
- ^^                    ^^                    ^^                    ^^
-")
-  ("q" nil)
-  ("a" ansi-term)
-  ("e" (eshell t))
-  ("t" term))
+  ("r" package-refresh-contents :color red))
 #+END_SRC
 
 #+BEGIN_SRC emacs-lisp
 (defun me/byte-delete ()
   (interactive)
-  (let ((default-directory user-emacs-directory))
-    (shell-command "find . -name \"*.elc\" -type f | xargs rm -f")))
+  (shell-command "find . -name \"*.elc\" -type f | xargs rm -f"))
 #+END_SRC
 
 ** Hydra / UI
 
 Group interface-related commands.
 
+| TODO | Check out =defhydradio=               |
+| TODO | Make a persistent toggle for Olivetti |
+| TODO | Merge =hydra-windows=                 |
+
 #+BEGIN_SRC emacs-lisp
-(defhydra hydra-ui (:color red)
+(defhydra hydra-ui (:color pink)
   (concat "\n " (me/hydra-heading "UI" "Frame" "Zoom" "Line Numbers")
           "
  _q_ quit              _m_ maximize          _-_ out               _n_ mode: %s`display-line-numbers
- ^^                    ^^                    _=_ in                _N_ absolute: %s`display-line-numbers-current-absolute
+^^                     ^^                    _=_ in                _N_ absolute: %s`display-line-numbers-current-absolute
  ^^                    ^^                    _0_ reset             ^^
 ")
   ("q" nil)
-  ("m" toggle-frame-maximized :color blue)
+  ("m" toggle-frame-maximized)
   ("n" me/display-line-numbers-toggle-type)
   ("N" me/display-line-numbers-toggle-absolute)
   ("-" default-text-scale-decrease)
@@ -1236,10 +1368,29 @@ Group window-related commands.
   ("w" (revert-buffer nil t) :color blue))
 #+END_SRC
 
+** Hydra / X
+
+Group window-related commands.
+
+#+BEGIN_SRC emacs-lisp
+(defhydra hydra-x (:color blue)
+  (concat "\n " (me/hydra-heading "X" "Do" "Toggle")
+          "
+ _q_ quit              _r_ reset             _f_ floating          ^^
+ ^^                    _R_ restart           ^^                    ^^
+")
+  ("q" nil)
+  ("f" exwm-floating-toggle-floating)
+  ("r" exwm-reset)
+  ("R" exwm-restart))
+#+END_SRC
+
 ** IRC
 
 | =erc=          | Built-in                                 |
 | =erc-hl-nicks= | https://github.com/leathekd/erc-hl-nicks |
+
+| TODO | Advice =erc-bol= to support shift |
 
 #+BEGIN_SRC emacs-lisp
 (use-package erc
@@ -1313,17 +1464,23 @@ efficient, smaller, simpler, and smoother to use yet highly customizable.
   :custom
   (ivy-count-format "")
   (ivy-fixed-height-minibuffer t)
-  (ivy-height 16)
+  (ivy-height 12)
   (ivy-initial-inputs-alist nil)
   (ivy-more-chars-alist '((t . 1)))
   (ivy-on-del-error-function 'ignore)
   (ivy-re-builders-alist '((t . ivy--regex-ignore-order)))
   (ivy-virtual-abbreviate 'full)
   :config
-  (setf (alist-get 't ivy-format-functions-alist) #'ivy-format-function-line))
+  (setf (alist-get 't ivy-format-functions-alist) #'ivy-format-function-line)
+  (advice-add 'ivy-more-chars :filter-return
+    (defun me/ivy-more-chars-inhibit (entries)
+      (when entries '("")))))
 #+END_SRC
 
 Augment Ivy's interface with details for candidates.
+
+| TODO | Add default value column to =counsel-describe-variable= |
+| TODO | Add face attribute columns to =counsel-faces=           |
 
 #+BEGIN_SRC emacs-lisp
 (use-package ivy-rich
@@ -1407,6 +1564,8 @@ Augment Ivy's interface with details for candidates.
 
 ** Ivy / Counsel
 
+| TODO | Make a Hydra for =counsel-rg= |
+
 #+BEGIN_SRC emacs-lisp
 (use-package counsel
   :hook
@@ -1474,29 +1633,32 @@ Flycheck lints warnings and errors directly within buffers. It can check a lot
 of different syntaxes, as long as you make sure that Emacs has access to the
 binaries.
 
+See this table for the differences between Flycheck and the built-in Flymake:
+https://www.flycheck.org/en/latest/user/flycheck-versus-flymake.html.
+
 #+BEGIN_SRC emacs-lisp
 (use-package flycheck
   :hook
   (css-mode . flycheck-mode)
   (emacs-lisp-mode . flycheck-mode)
-  (js-mode . flycheck-mode)
-  (web-mode . flycheck-mode)
   (python-mode . flycheck-mode)
   :custom
-  (flycheck-check-syntax-automatically '(idle-buffer-switch save))
-  (flycheck-disabled-checkers '(emacs-lisp-checkdoc))
-  (flycheck-display-errors-delay .1)
+  (flycheck-check-syntax-automatically '(idle-buffer-switch idle-change save))
+  (flycheck-display-errors-delay .01)
   (flycheck-emacs-lisp-load-path 'inherit)
-  (flycheck-indication-mode nil))
+  (flycheck-indication-mode 'right-fringe)
+  :config
+  (define-fringe-bitmap 'flycheck-fringe-bitmap-double-arrow [192] nil nil '(center t)))
 #+END_SRC
 
-Run Prettier against the whole buffer on save. Toggle the minor mode on through
-a strategically positioned =.dir-locals.el= containing the major modes for which
-to activate it. Use =nil= to enable Prettier for all major modes in that
-directory. ie.
+Run Prettier against the whole buffer on save. You can toggle the minor mode on
+through a strategically positioned =.dir-locals.el= containing the major modes
+for which to activate it, or use =nil= to enable =prettier-mode= for all major
+modes in that directory.
 
 #+BEGIN_SRC emacs-lisp :tangle no
-((nil . ((mode . prettier))))
+((nil . ((mode . prettier)))
+ (web-mode . ((prettier-parsers . (typescript)))))
 #+END_SRC
 
 #+BEGIN_QUOTE
@@ -1517,6 +1679,9 @@ Yup, Emacs supports LSP.
 | =lsp-mode= | https://github.com/emacs-lsp/lsp-mode |
 | =lsp-ui=   | https://github.com/emacs-lsp/lsp-ui   |
 
+| TODO | Make a minor mode for =me/lsp-optimize=  |
+| TODO | =C-c l= conflicts with =selected-keymap= |
+
 #+BEGIN_SRC emacs-lisp
 (use-package lsp-mode
   :preface
@@ -1534,9 +1699,18 @@ Yup, Emacs supports LSP.
    ("C-c l" . hydra-lsp/body))
   :custom
   (lsp-auto-guess-root t)
-  (lsp-idle-delay .01)
   (lsp-eldoc-enable-hover nil)
-  (lsp-session-file (expand-file-name ".lsp" user-emacs-directory)))
+  (lsp-enable-file-watchers nil)
+  (lsp-enable-folding nil)
+  (lsp-headerline-breadcrumb-enable nil)
+  (lsp-idle-delay .01))
+#+END_SRC
+
+#+BEGIN_SRC emacs-lisp
+(use-package lsp-eslint
+  :ensure nil
+  :custom
+  (lsp-eslint-run "onSave"))
 #+END_SRC
 
 #+BEGIN_SRC emacs-lisp
@@ -1550,7 +1724,12 @@ Yup, Emacs supports LSP.
   (lsp-ui-doc-position 'top)
   (lsp-ui-imenu-enable nil)
   (lsp-ui-peek-enable nil)
-  (lsp-ui-sideline-enable nil))
+  (lsp-ui-sideline-enable nil)
+  :config
+  (advice-add 'lsp-ui-doc--mv-at-point :filter-args
+    (defun me/lsp-ui-doc--mv-at-point-with-margin (arguments)
+      (cl-destructuring-bind (width height x y) arguments
+        `(,width ,height ,x ,(- y 10))))))
 #+END_SRC
 
 ** Mode-Line
@@ -1563,6 +1742,7 @@ Yup, Emacs supports LSP.
   :custom
   (doom-modeline-bar-width 1)
   (doom-modeline-buffer-file-name-style 'truncate-with-project)
+  (doom-modeline-height 36)
   (doom-modeline-enable-word-count t)
   (doom-modeline-major-mode-icon nil)
   (doom-modeline-percent-position nil)
@@ -1773,6 +1953,11 @@ jump from one paragraph to another.
 
 Pulse temporarily highlights the background color of a line or region.
 
+| TODO | Pulse yanks             |
+| TODO | Pulse evaluation blocks |
+| TODO | Pulse =rg= jumps        |
+| TODO | Pulse =magit= jumps     |
+
 #+BEGIN_SRC emacs-lisp
 (use-package pulse :ensure nil)
 #+END_SRC
@@ -1875,11 +2060,11 @@ Augment Emacs experience for MacOS users.
 #+BEGIN_SRC emacs-lisp
 (when (eq system-type 'darwin)
   (setq-default
-   dired-use-ls-dired nil                            ; MacOS's ls does not support --dired
-   ns-alternate-modifier 'super                      ; Map Super to the Alt key
-   ns-command-modifier 'meta                         ; Map Meta to the Cmd key
-   ns-pop-up-frames nil                              ; Always re-use the same frame
-   ns-use-mwheel-momentum nil))                      ; Disable smooth scroll
+   dired-use-ls-dired nil               ; MacOS's ls does not support --dired
+   ns-alternate-modifier 'super         ; Map Super to the Alt key
+   ns-command-modifier 'meta            ; Map Meta to the Cmd key
+   ns-pop-up-frames nil                 ; Always re-use the same frame
+   ns-use-mwheel-momentum nil))         ; Disable smooth scroll
 #+END_SRC
 
 Provide a way to invoke =bash= on Windows. This requires /Developer Mode/ to be
@@ -1933,6 +2118,8 @@ No package seem to please my person.
 
 | =webpaste= | https://github.com/etu/webpaste.el |
 
+| TODO | Prefer a default provider that supports https |
+
 #+BEGIN_QUOTE
 This mode allows to paste whole buffers or parts of buffers to pastebin-like
 services. It supports more than one service and will failover if one service
@@ -1941,8 +2128,12 @@ fails.
 --- Elis Hirwing
 #+END_QUOTE
 
+| TODO | Handle Org blocks https://github.com/etu/webpaste.el/issues/13 |
+
 #+BEGIN_SRC emacs-lisp
-(use-package webpaste)
+(use-package webpaste
+  :custom
+  (webpaste-provider-priority '("paste.mozilla.org" "dpaste.org")))
 #+END_SRC
 
 ** Point and Region / Expand
@@ -2054,17 +2245,14 @@ Enable multiple cursors outside Evil. Some witchcraft at work here.
 
 #+BEGIN_SRC emacs-lisp
 (use-package multiple-cursors
-  :bind
-  (("C-S-c C-S-a" . mc/vertical-align-with-space)
-   ("C-S-c C-S-c" . mc/edit-lines)
-   ("C-S-c C-S-n" . mc/insert-numbers)
-   :map mc/keymap
+  :bind*
+  (:map mc/keymap
    ("M-a" . mc/vertical-align-with-space)
    ("M-h" . mc-hide-unmatched-lines-mode)
    ("M-l" . mc/insert-letters)
    ("M-n" . mc/insert-numbers))
   :init
-  (setq-default mc/list-file (expand-file-name ".multiple-cursors.el" user-emacs-directory))
+  (setq-default mc/list-file (me/cache-concat ".multiple-cursors.el"))
   :custom
   (mc/edit-lines-empty-lines 'ignore)
   (mc/insert-numbers-default 1))
@@ -2079,16 +2267,16 @@ use with =selected=.
 
 #+BEGIN_SRC emacs-lisp
 (use-package selected
-  :bind
+  :bind*
   (:map selected-keymap
    ("C-?"         . hydra-selected/body)
    ("<"           . mc/mark-previous-like-this)
    (">"           . mc/mark-next-like-this)
    ("C-<"         . mc/unmark-previous-like-this)
    ("C->"         . mc/unmark-next-like-this)
-   ("C-M-<"       . mc/skip-to-previous-like-this)
-   ("C-M->"       . mc/skip-to-next-like-this)
-   ("C-c C-c"     . me/eval-region-and-kill-mark)
+   ("M-<"         . mc/skip-to-previous-like-this)
+   ("M->"         . mc/skip-to-next-like-this)
+   ("C-c >"       . mc/edit-lines)
    ("C-b"         . me/browse-url-and-kill-mark)
    ("C-c c"       . capitalize-region)
    ("C-c k"       . me/kebab-region)
@@ -2096,10 +2284,10 @@ use with =selected=.
    ("C-c u"       . upcase-region)
    ("C-d"         . define-word-at-point)
    ("C-f"         . fill-region)
-   ("C-g"         . selected-off)
    ("C-h h"       . hlt-highlight-region)
    ("C-h H"       . hlt-unhighlight-region)
    ("C-p"         . webpaste-paste-region)
+   ("C-q"         . selected-off)
    ("C-s r"       . reverse-region)
    ("C-s s"       . sort-lines)
    ("C-s w"       . me/sort-words)
@@ -2207,14 +2395,16 @@ exists as well).
 --- Bozhidar Batsov
 #+END_QUOTE
 
+| TODO | Bind =projectile-commander= to =counsel-projectile-switch-project-action= |
+
 #+BEGIN_SRC emacs-lisp
 (use-package projectile
   :hook
   (after-init . projectile-mode)
   :init
   (setq-default
-   projectile-cache-file (expand-file-name ".projectile.cache" user-emacs-directory)
-   projectile-known-projects-file (expand-file-name ".projectile.eld" user-emacs-directory))
+   projectile-cache-file (me/cache-concat ".projectile.cache")
+   projectile-known-projects-file (me/cache-concat ".projectile.eld"))
   :custom
   (projectile-completion-system 'ivy)
   (projectile-dynamic-mode-line nil)
@@ -2279,11 +2469,21 @@ electric-indent-mode.
 
 Sort interactive commands by usage.
 
+| TODO | Checkout whether =prescient= is lighter |
+
 #+BEGIN_SRC emacs-lisp
 (use-package amx
   :custom
-  (amx-save-file (expand-file-name ".amx" user-emacs-directory))
+  (amx-save-file (me/cache-concat ".amx"))
   (amx-show-key-bindings nil))
+#+END_SRC
+
+Use =conf-mode= automatically for configuration files.
+
+#+BEGIN_SRC emacs-lisp
+(use-package conf-mode
+  :ensure nil
+  :mode "\\(?:\\.env\\.\\(?:development\\|local\\|test\\)\\)")
 #+END_SRC
 
 Insert the current date. See [[#hydra--dates][Hydra / Dates]].
@@ -2341,7 +2541,7 @@ Customize the noisy default towards backup files.
   :ensure nil
   :custom
   (backup-by-copying t)
-  (backup-directory-alist `(("." . ,(expand-file-name "backups/" user-emacs-directory))))
+  (backup-directory-alist `(("." . ,(me/cache-concat "backups/"))))
   (delete-old-versions t)
   (version-control t))
 #+END_SRC
@@ -2391,7 +2591,8 @@ Turn on =auto-fill-mode= /almost/ everywhere.
   (text-mode . auto-fill-mode))
 #+END_SRC
 
-Display the available keybindings following your current input.
+Display the available keybindings following your current input. I find
+=which-key= too intrusive and enable it on demand through =M-x which-key-mode=.
 
 #+BEGIN_SRC emacs-lisp
 (use-package which-key
@@ -2402,6 +2603,20 @@ Display the available keybindings following your current input.
   (which-key-separator " ")
   (which-key-sort-order 'which-key-prefix-then-key-order)
   (which-key-use-C-h-commands nil))
+#+END_SRC
+
+Tail =*Messages*= windows. This is useful when debugging naively with repeated
+calls to the =message= function.
+
+#+BEGIN_SRC emacs-lisp
+(advice-add 'message :after
+  (defun me/message-tail (&rest _)
+    (let* ((name "*Messages*")
+           (buffer (get-buffer-create name)))
+      (when (not (string= name (buffer-name)))
+        (dolist (window (get-buffer-window-list name nil t))
+          (with-selected-window window
+            (goto-char (point-max))))))))
 #+END_SRC
 
 ** REST Client
@@ -2419,11 +2634,14 @@ Emacs can also emulate an interactive REST client.
 
 ** Shell and Terminal
 
-| =em-banner= | Built-in |
-| =em-hist=   | Built-in |
-| =esh-mode=  | Built-in |
-| =esh-proc=  | Built-in |
-| =term=      | Built-in |
+| =em-banner= | Built-in                                 |
+| =em-hist=   | Built-in                                 |
+| =esh-mode=  | Built-in                                 |
+| =esh-proc=  | Built-in                                 |
+| =vterm=     | https://github.com/akermu/emacs-libvterm |
+
+| TODO | Advice =eshell-bol= to support shift    |
+| TODO | Advice =vterm= motions to support shift |
 
 #+BEGIN_SRC emacs-lisp
 (use-package em-banner
@@ -2460,11 +2678,12 @@ Emacs can also emulate an interactive REST client.
 
 Yes, Emacs emulates terminals too.
 
+| TODO | Fix cursor shape when jumping out of =curses=-based applications |
+
 #+BEGIN_SRC emacs-lisp
-(use-package term
-  :ensure nil
-  :hook
-  (term-mode . (lambda () (setq-local scroll-margin 0))))
+(use-package vterm
+  :bind
+  ("C-!" . vterm))
 #+END_SRC
 
 ** Version Control
@@ -2476,15 +2695,14 @@ Yes, Emacs emulates terminals too.
 | =gitignore-mode=     | https://github.com/magit/git-modes#gitignore-mode             |
 | =magit=              | https://github.com/magit/magit                                |
 | =pinentry=           | https://elpa.gnu.org/packages/pinentry.html                   |
+| =transient=          | https://github.com/magit/transient                            |
 
 Auto-fill commit messages.
 
 #+BEGIN_SRC emacs-lisp
 (use-package git-commit
   :hook
-  (git-commit-mode . (lambda () (setq-local fill-column 72)))
-  :custom
-  (git-commit-summary-max-length 50))
+  (git-commit-mode . (lambda () (setq-local fill-column 72))))
 #+END_SRC
 
 Display indicators in the left fringe for Git changes.
@@ -2502,7 +2720,7 @@ Display indicators in the left fringe for Git changes.
   (after-change-major-mode . me/git-gutter-enable)
   :config
   (define-fringe-bitmap 'git-gutter-fr:added [192] nil nil '(center t))
-  (define-fringe-bitmap 'git-gutter-fr:deleted [192] nil nil '(center t))
+  (define-fringe-bitmap 'git-gutter-fr:deleted [192 192 192 192] nil nil 'bottom)
   (define-fringe-bitmap 'git-gutter-fr:modified [192] nil nil '(center t)))
 #+END_SRC
 
@@ -2538,12 +2756,11 @@ Git clients exist, only Magit and Git itself deserve to be called porcelains.
   (epg-pinentry-mode 'loopback)
   (magit-display-buffer-function 'magit-display-buffer-same-window-except-diff-v1)
   (magit-diff-highlight-hunk-region-functions
-   '(magit-diff-highlight-hunk-region-dim-outside magit-diff-highlight-hunk-region-using-face))
+   '(magit-diff-highlight-hunk-region-dim-outside
+     magit-diff-highlight-hunk-region-using-face))
   (magit-module-sections-nested nil)
   (magit-section-initial-visibility-alist
    '((modules . show) (stashes . show) (unpulled . show) (unpushed . show)))
-  (transient-default-level 5)
-  (transient-mode-line-format nil)
   :config
   (magit-add-section-hook
    'magit-status-sections-hook 'magit-insert-modules-overview 'magit-insert-merge-log)
@@ -2582,6 +2799,22 @@ pinentry-program /usr/local/bin/pinentry
     signingkey = 1234567890ABCDEF
 [commit]
     gpgsign = true
+#+END_SRC
+
+Transient is the package behind the modal maps and prefixes depicted in Magit.
+It is currently used by Magit only in my configuration so it will stay in this
+section for now.
+
+#+BEGIN_SRC emacs-lisp
+(use-package transient
+  :init
+  (setq-default
+   transient-history-file (me/cache-concat "transient/history.el")
+   transient-levels-file (me/cache-concat "transient/levels.el")
+   transient-values-file (me/cache-concat "transient/values.el"))
+  :custom
+  (transient-default-level 5)
+  (transient-mode-line-format nil))
 #+END_SRC
 
 ** Whitespaces

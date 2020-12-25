@@ -24,7 +24,8 @@
 
 ;;; Code:
 
-(let ((file-name-handler-alist nil)
+(let ((default-directory user-emacs-directory)
+      (file-name-handler-alist nil)
       (gc-cons-percentage .6)
       (gc-cons-threshold most-positive-fixnum)
       (read-process-output-max (* 1024 1024)))
@@ -45,11 +46,15 @@
     (package-refresh-contents)
     (package-install 'use-package t))
   (setq-default
+   package-native-compile t
    use-package-always-defer t
    use-package-always-ensure t)
 
   ;; Tangle configuration
-  (org-babel-load-file (expand-file-name "dotemacs.org" user-emacs-directory))
+  (org-babel-load-file (expand-file-name "dotemacs.org" user-emacs-directory) t)
   (garbage-collect))
+
+;; Reset the working directory regardless of where Emacs was started
+(cd "~/")
 
 ;;; init.el ends here
